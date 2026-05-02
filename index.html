@@ -87,6 +87,11 @@
       .split { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; font-size: 14px; background: #efe7d3; border-radius: 12px; padding: 12px; }
       .apply-row { position: sticky; bottom: 0; background: linear-gradient(180deg, rgba(248,243,231,.6), #f8f3e7 35%); padding-top: 10px; margin-top: 12px; }
       .apply-row .btn { width: 100%; justify-content: center; }
+      .form-field { margin-bottom: 10px; }
+      .form-field input, .form-field textarea { width: 100%; border: 1px solid #c7bda6; border-radius: 10px; padding: 10px; background: #fffdf6; }
+      .form-field textarea { min-height: 74px; resize: vertical; }
+      .error { color: #9a2d2d; font-size: 12px; margin-top: 4px; }
+      .success-card { border: 1px solid #d8cfb7; background: #fff9ec; border-radius: 12px; padding: 14px; }
 
       @media (max-width: 980px) {
         .meeting-grid { grid-template-columns: repeat(2,1fr); }
@@ -143,6 +148,7 @@
     <footer class="container"><strong>LIME ZEST ACADEMY DEMODAY</strong><p>문의: limezest@academy.kr | 운영기관: 라임 제스트 아카데미 · 광명시 청년동</p><p>개인정보 안내 문구가 들어갈 자리입니다.</p></footer>
 
     <div class="modal-backdrop" id="modalBackdrop"><div class="modal" role="dialog" aria-modal="true"><div class="modal-head"><div></div><button class="close" id="closeModal" aria-label="닫기">✕</button></div><div id="modalContent"></div></div></div>
+    <div class="modal-backdrop" id="applicationBackdrop"><div class="modal" role="dialog" aria-modal="true"><div class="modal-head"><h3 style="margin:0">모임 신청</h3><button class="close" id="closeApplicationModal" aria-label="신청 모달 닫기">✕</button></div><div id="applicationContent"></div></div></div>
 
     <script>
       const plotDescriptions = { discovery:'새로운 취향을 발견', escape:'일상 답답함 환기', maturation:'나를 이해하고 성장', quest:'함께 목표를 완주', mystery:'단서를 따라 탐색', adventure:'처음의 시도 경험', metamorphosis:'다른 나를 실험', underdog:'나만의 방식으로 성취' };
@@ -161,15 +167,22 @@
         {id:'m12',title:'거리 산책 스케치: 도시의 단서 찾기',shortDescription:'동네를 탐험하며 순간을 드로잉합니다.',fullDescription:'짧은 산책 후 관찰한 장면을 스케치하고 서로의 시선을 공유하는 모임입니다.',hostName:'노아림',plot:'mystery',plotLabel:'수수께끼',recommendedFor:['가볍게 걷고 싶은 분','그림 초보'],programFlow:['산책 코스 안내','관찰 스케치','소감 공유'],date:'2026-06-02',startTime:'17:30',endTime:'19:00',location:'광명시 청년동 야외마당',capacity:10,currentApplicants:7,tags:['산책','스케치','관찰']}
       ];
       const faq = [['혼자 참여해도 괜찮나요?','네. 혼자 오는 분이 많아 자연스럽게 어울릴 수 있어요.'],['여러 모임에 신청할 수 있나요?','시간이 겹치지 않는다면 여러 모임 신청이 가능합니다.'],['신청 후 취소할 수 있나요?','가능합니다. 운영자 채널로 연락해주세요.'],['정원이 마감되면 대기 신청이 가능한가요?','1차 버전에서는 대기 신청 대신 추가 오픈 소식을 안내합니다.'],['모임 장소는 어디인가요?','광명시 청년동 내 각 공간에서 진행됩니다.'],['신청 완료 여부는 어떻게 확인하나요?','신청 기능 연동 후 문자/이메일 확인 방식을 제공할 예정입니다.']];
+      const APPLICATION_ENDPOINT = "";
+      // NOTE: 중복 신청 방지는 임시로 localStorage 기준입니다. 실제 운영에서는 서버/시트 기준 검증이 필요합니다.
+      const APPLICATION_STORAGE_KEY = "lime-zest-applications";
       const state = { search:'', status:'all', plot:'all' };
       const statusOptions=[['all','전체'],['open','신청 가능'],['almost_full','마감 임박'],['closed','모집 마감']];
       const plotOptions=[['all','전체'],['discovery','발견'],['escape','탈출'],['maturation','성숙'],['quest','추구'],['mystery','수수께끼'],['adventure','모험'],['metamorphosis','변모'],['underdog','약자의 승리']];
       const getStatus=m=>m.currentApplicants>=m.capacity?'closed':m.currentApplicants/m.capacity>=0.75?'almost_full':'open';
       const statusLabel={open:'신청 가능',almost_full:'마감 임박',closed:'모집 마감'};
+      const readApplications=()=>JSON.parse(localStorage.getItem(APPLICATION_STORAGE_KEY)||'[]');
+      const getLocalApplicantCount=id=>readApplications().filter(a=>a.meetingId===id).length;
+      const isApplied=id=>getLocalApplicantCount(id)>0;
+      const getDisplayApplicants=m=>m.currentApplicants+getLocalApplicantCount(m.id);
 
       function renderStatusCards(){
-        const openCount=meetings.filter(m=>getStatus(m)!=='closed').length;
-        const totalApplicants=meetings.reduce((a,m)=>a+m.currentApplicants,0);
+        const openCount=meetings.filter(m=>getDisplayApplicants(m)<m.capacity).length;
+        const totalApplicants=meetings.reduce((a,m)=>a+getDisplayApplicants(m),0);
         statusGrid.innerHTML=`<div class='status-card'><span>개설 모임</span><strong>50개</strong></div><div class='status-card'><span>신청 가능 모임</span><strong>${openCount}개</strong></div><div class='status-card'><span>누적 신청자</span><strong>${totalApplicants}명</strong></div>`;
       }
       function renderChips(){
@@ -181,20 +194,59 @@
         const q=state.search.trim().toLowerCase();
         const filtered=meetings.filter(m=>{
           const text=[m.title,m.shortDescription,m.hostName,m.tags.join(' ')].join(' ').toLowerCase();
-          return (!q||text.includes(q))&&(state.status==='all'||getStatus(m)===state.status)&&(state.plot==='all'||m.plot===state.plot);
+          const status=getStatus({...m,currentApplicants:getDisplayApplicants(m)});
+          return (!q||text.includes(q))&&(state.status==='all'||status===state.status)&&(state.plot==='all'||m.plot===state.plot);
         });
         if(!filtered.length){ meetingGrid.innerHTML=`<div class='empty'>조건에 맞는 모임이 없습니다.</div>`; return; }
-        meetingGrid.innerHTML=filtered.map(m=>{ const s=getStatus(m); return `<article class='meeting-card'><div class='badge-line'><span class='badge' style='background:#ece6d2;color:#5b4f31;border-color:#d9cda8'>${m.plotLabel}</span><span class='badge status-${s}'>${statusLabel[s]}</span></div><h3>${m.title}</h3><p>${m.shortDescription}</p><p class='host'>호스트 ${m.hostName}</p><p class='meta'>${m.date} · ${m.startTime}-${m.endTime}</p><p class='meta'>${m.location}</p><p class='meta'>${m.currentApplicants} / ${m.capacity}명 신청 중</p><button class='btn ${s==='closed'?'btn-ghost':'btn-lime'}' data-id='${m.id}'>${s==='closed'?'모집 마감':'자세히 보기'}</button></article>`; }).join('');
+        meetingGrid.innerHTML=filtered.map(m=>{ const s=getStatus({...m,currentApplicants:getDisplayApplicants(m)}); const applied=isApplied(m.id); return `<article class='meeting-card'><div class='badge-line'><span class='badge' style='background:#ece6d2;color:#5b4f31;border-color:#d9cda8'>${m.plotLabel}</span><span class='badge status-${s}'>${statusLabel[s]}</span>${applied?"<span class='badge' style='background:#e9ffd7;color:#2a5724;border-color:#b7dd99'>신청 완료</span>":""}</div><h3>${m.title}</h3><p>${m.shortDescription}</p><p class='host'>호스트 ${m.hostName}</p><p class='meta'>${m.date} · ${m.startTime}-${m.endTime}</p><p class='meta'>${m.location}</p><p class='meta'>${getDisplayApplicants(m)} / ${m.capacity}명 신청 중</p><button class='btn ${s==='closed'?'btn-ghost':'btn-lime'}' data-id='${m.id}'>${s==='closed'?'모집 마감':'자세히 보기'}</button></article>`; }).join('');
+      }
+      function openApplicationModal(meeting){
+        const currentApplicants=getDisplayApplicants(meeting);
+        const errors={};
+        applicationContent.innerHTML=`<div class='success-card' style='margin-bottom:10px'><strong>${meeting.title}</strong><p class='meta'>${meeting.date} ${meeting.startTime}-${meeting.endTime}</p><p class='meta'>${meeting.location}</p><p class='meta'>${currentApplicants} / ${meeting.capacity}명 신청 중</p></div><form id='applicationForm'><div class='form-field'><label>이름 *</label><input name='applicantName' placeholder='홍길동' /></div><div class='form-field'><label>연락처 *</label><input name='phone' placeholder='010-0000-0000' /></div><div class='form-field'><label>이메일 또는 카카오톡 ID</label><input name='contact' placeholder='안내를 받을 연락 수단을 입력해주세요' /></div><div class='form-field'><label>신청 동기 한 줄</label><textarea name='reason' placeholder='이 모임에 참여하고 싶은 이유를 짧게 적어주세요'></textarea></div><div class='form-field'><label><input type='checkbox' name='consent' /> 개인정보 수집 및 이용에 동의합니다. *</label></div><button class='btn btn-lime' type='submit'>신청 완료</button></form>`;
+        applicationBackdrop.style.display='flex';
+        document.getElementById('applicationForm').addEventListener('submit',(e)=>{
+          e.preventDefault();
+          const fd=new FormData(e.target);
+          const applicantName=String(fd.get('applicantName')||'').trim();
+          const phone=String(fd.get('phone')||'').trim();
+          const contact=String(fd.get('contact')||'').trim();
+          const reason=String(fd.get('reason')||'').trim();
+          const consent=fd.get('consent')==='on';
+          if(!applicantName) errors.applicantName='이름을 입력해주세요.';
+          if(!phone) errors.phone='연락처를 입력해주세요.';
+          if(!consent) errors.consent='개인정보 동의가 필요합니다.';
+          document.querySelectorAll('.error').forEach(el=>el.remove());
+          if(Object.keys(errors).length){
+            Object.entries(errors).forEach(([name,msg])=>{
+              const field=e.target.querySelector(`[name="${name}"]`)?.closest('.form-field');
+              if(field) field.insertAdjacentHTML('beforeend', `<div class='error'>${msg}</div>`);
+            });
+            return;
+          }
+          const application={applicationId:`app-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,meetingId:meeting.id,meetingTitle:meeting.title,applicantName,phone,contact,reason,createdAt:new Date().toISOString(),status:'submitted'};
+          const existing=readApplications(); existing.push(application); localStorage.setItem(APPLICATION_STORAGE_KEY, JSON.stringify(existing));
+          console.log('application submitted:', application);
+          // TODO: 추후 API 연동 시 APPLICATION_ENDPOINT에 POST 요청 전송.
+          if (APPLICATION_ENDPOINT) { /* fetch(APPLICATION_ENDPOINT, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(application) }); */ }
+          applicationContent.innerHTML=`<div class='success-card'><h3>신청이 접수되었습니다.</h3><p>신청해주셔서 감사합니다. 운영팀 확인 후 안내가 필요한 경우 입력하신 연락처로 연락드릴게요.</p><p><strong>신청한 모임:</strong><br>${meeting.title}<br>${meeting.date} ${meeting.startTime}-${meeting.endTime}<br>${meeting.location}</p><div class='badge-row'><button class='btn btn-lime' id='browseMore'>다른 모임 둘러보기</button><button class='btn btn-ghost' id='closeAfterSubmit'>닫기</button></div></div>`;
+          renderStatusCards(); renderMeetings();
+          document.getElementById('browseMore').addEventListener('click',()=>{ closeApplicationLayer(); closeModal(); document.getElementById('explorer').scrollIntoView({behavior:'smooth'}); });
+          document.getElementById('closeAfterSubmit').addEventListener('click',closeApplicationLayer);
+        });
       }
       function openModal(meeting){
-        const s=getStatus(meeting);
-        const canApply=s!=='closed';
-        modalContent.innerHTML=`<h2 style='margin:0'>${meeting.title}</h2><p style='margin:8px 0 10px;color:#5b5243'>${meeting.shortDescription}</p><div class='badge-line'><span class='badge' style='background:#ece6d2;color:#5b4f31;border-color:#d9cda8'>${meeting.plotLabel}</span><span class='badge status-${s}'>${statusLabel[s]}</span></div><h3 style='margin:14px 0 8px'>이런 분께 추천해요</h3><ul>${meeting.recommendedFor.map(i=>`<li>${i}</li>`).join('')}</ul><h3 style='margin:12px 0 8px'>모임은 이렇게 진행돼요</h3><ol>${meeting.programFlow.map(i=>`<li>${i}</li>`).join('')}</ol><div class='split'><div><strong>일시</strong><br>${meeting.date} ${meeting.startTime}-${meeting.endTime}</div><div><strong>장소</strong><br>${meeting.location}</div><div><strong>정원</strong><br>${meeting.capacity}명</div><div><strong>현재 신청</strong><br>${meeting.currentApplicants}명</div><div><strong>호스트</strong><br>${meeting.hostName}</div></div><div class='apply-row'><button class='btn ${canApply?'btn-lime':'btn-ghost'}' id='applyBtn' ${canApply?'':'disabled'}>${canApply?'이 모임 신청하기':'모집 마감'}</button></div>`;
+        const currentApplicants=getDisplayApplicants(meeting);
+        const s=getStatus({...meeting,currentApplicants});
+        const alreadyApplied=isApplied(meeting.id);
+        const canApply=s!=='closed' && !alreadyApplied;
+        modalContent.innerHTML=`<h2 style='margin:0'>${meeting.title}</h2><p style='margin:8px 0 10px;color:#5b5243'>${meeting.shortDescription}</p><div class='badge-line'><span class='badge' style='background:#ece6d2;color:#5b4f31;border-color:#d9cda8'>${meeting.plotLabel}</span><span class='badge status-${s}'>${statusLabel[s]}</span>${alreadyApplied?"<span class='badge' style='background:#e9ffd7;color:#2a5724;border-color:#b7dd99'>신청 완료</span>":""}</div><h3 style='margin:14px 0 8px'>이런 분께 추천해요</h3><ul>${meeting.recommendedFor.map(i=>`<li>${i}</li>`).join('')}</ul><h3 style='margin:12px 0 8px'>모임은 이렇게 진행돼요</h3><ol>${meeting.programFlow.map(i=>`<li>${i}</li>`).join('')}</ol><div class='split'><div><strong>일시</strong><br>${meeting.date} ${meeting.startTime}-${meeting.endTime}</div><div><strong>장소</strong><br>${meeting.location}</div><div><strong>정원</strong><br>${meeting.capacity}명</div><div><strong>현재 신청</strong><br>${currentApplicants}명</div><div><strong>호스트</strong><br>${meeting.hostName}</div></div><div class='apply-row'><button class='btn ${canApply?'btn-lime':'btn-ghost'}' id='applyBtn' ${canApply?'':'disabled'}>${alreadyApplied?'이미 신청한 모임입니다':canApply?'이 모임 신청하기':'모집 마감'}</button></div>`;
         const applyBtn=document.getElementById('applyBtn');
-        if (canApply) applyBtn.addEventListener('click',()=>alert('신청 기능은 곧 연결될 예정입니다.'));
+        if (canApply) applyBtn.addEventListener('click',()=>openApplicationModal(meeting));
         modalBackdrop.style.display='flex';
       }
       function closeModal(){ modalBackdrop.style.display='none'; }
+      function closeApplicationLayer(){ applicationBackdrop.style.display='none'; }
 
       document.getElementById('searchInput').addEventListener('input',e=>{state.search=e.target.value; renderMeetings();});
       document.addEventListener('click',e=>{
@@ -203,8 +255,10 @@
         const card=e.target.closest('[data-id]'); if(card){const m=meetings.find(x=>x.id===card.dataset.id); if(m) openModal(m);}
       });
       closeModal.addEventListener('click', closeModal);
+      document.getElementById('closeApplicationModal').addEventListener('click', closeApplicationLayer);
       modalBackdrop.addEventListener('click',e=>{ if(e.target===modalBackdrop) closeModal(); });
-      document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+      applicationBackdrop.addEventListener('click',e=>{ if(e.target===applicationBackdrop) closeApplicationLayer(); });
+      document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeModal(); closeApplicationLayer(); } });
 
       faqList.innerHTML=faq.map(([q,a])=>`<details><summary>${q}</summary><p style='color:#4e4639'>${a}</p></details>`).join('');
       renderStatusCards(); renderChips(); renderMeetings();
