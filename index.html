@@ -151,6 +151,20 @@
     <div class="modal-backdrop" id="applicationBackdrop"><div class="modal" role="dialog" aria-modal="true"><div class="modal-head"><h3 style="margin:0">모임 신청</h3><button class="close" id="closeApplicationModal" aria-label="신청 모달 닫기">✕</button></div><div id="applicationContent"></div></div></div>
 
     <script>
+      const statusGrid = document.getElementById('statusGrid');
+      const statusChips = document.getElementById('statusChips');
+      const plotChips = document.getElementById('plotChips');
+      const plotHints = document.getElementById('plotHints');
+      const meetingGrid = document.getElementById('meetingGrid');
+      const modalBackdrop = document.getElementById('modalBackdrop');
+      const modalContent = document.getElementById('modalContent');
+      const applicationBackdrop = document.getElementById('applicationBackdrop');
+      const applicationContent = document.getElementById('applicationContent');
+      const faqList = document.getElementById('faqList');
+      const searchInput = document.getElementById('searchInput');
+      const closeDetailBtn = document.getElementById('closeModal');
+      const closeApplicationBtn = document.getElementById('closeApplicationModal');
+
       const plotDescriptions = { discovery:'새로운 취향을 발견', escape:'일상 답답함 환기', maturation:'나를 이해하고 성장', quest:'함께 목표를 완주', mystery:'단서를 따라 탐색', adventure:'처음의 시도 경험', metamorphosis:'다른 나를 실험', underdog:'나만의 방식으로 성취' };
       const meetings = [
         {id:'m1',title:'나도 몰랐던 내 취향 찾기',shortDescription:'질문과 선택으로 취향의 기준을 찾아봐요.',fullDescription:'질문 카드와 취향 지도 도구를 활용해 나의 취향을 발견하는 대화형 모임입니다.',hostName:'김하린',plot:'discovery',plotLabel:'발견',recommendedFor:['내 취향을 잘 모르겠는 분','가볍게 대화를 나누고 싶은 분','처음 참여가 어색한 분'],programFlow:['가벼운 질문으로 시작해요','선택지를 고르고 이유를 나눠요','취향 기준을 한 문장으로 정리해요'],date:'2026-05-21',startTime:'19:00',endTime:'20:30',location:'광명시 청년동 2층 라운지',capacity:8,currentApplicants:6,tags:['취향','대화','자기이해']},
@@ -202,11 +216,11 @@
       }
       function openApplicationModal(meeting){
         const currentApplicants=getDisplayApplicants(meeting);
-        const errors={};
         applicationContent.innerHTML=`<div class='success-card' style='margin-bottom:10px'><strong>${meeting.title}</strong><p class='meta'>${meeting.date} ${meeting.startTime}-${meeting.endTime}</p><p class='meta'>${meeting.location}</p><p class='meta'>${currentApplicants} / ${meeting.capacity}명 신청 중</p></div><form id='applicationForm'><div class='form-field'><label>이름 *</label><input name='applicantName' placeholder='홍길동' /></div><div class='form-field'><label>연락처 *</label><input name='phone' placeholder='010-0000-0000' /></div><div class='form-field'><label>이메일 또는 카카오톡 ID</label><input name='contact' placeholder='안내를 받을 연락 수단을 입력해주세요' /></div><div class='form-field'><label>신청 동기 한 줄</label><textarea name='reason' placeholder='이 모임에 참여하고 싶은 이유를 짧게 적어주세요'></textarea></div><div class='form-field'><label><input type='checkbox' name='consent' /> 개인정보 수집 및 이용에 동의합니다. *</label></div><button class='btn btn-lime' type='submit'>신청 완료</button></form>`;
         applicationBackdrop.style.display='flex';
         document.getElementById('applicationForm').addEventListener('submit',(e)=>{
           e.preventDefault();
+          const errors={};
           const fd=new FormData(e.target);
           const applicantName=String(fd.get('applicantName')||'').trim();
           const phone=String(fd.get('phone')||'').trim();
@@ -248,14 +262,14 @@
       function closeModal(){ modalBackdrop.style.display='none'; }
       function closeApplicationLayer(){ applicationBackdrop.style.display='none'; }
 
-      document.getElementById('searchInput').addEventListener('input',e=>{state.search=e.target.value; renderMeetings();});
+      searchInput.addEventListener('input',e=>{state.search=e.target.value; renderMeetings();});
       document.addEventListener('click',e=>{
         const s=e.target.closest('[data-status]'); if(s){state.status=s.dataset.status; renderChips(); renderMeetings();}
         const p=e.target.closest('[data-plot]'); if(p){state.plot=p.dataset.plot; renderChips(); renderMeetings();}
         const card=e.target.closest('[data-id]'); if(card){const m=meetings.find(x=>x.id===card.dataset.id); if(m) openModal(m);}
       });
-      closeModal.addEventListener('click', closeModal);
-      document.getElementById('closeApplicationModal').addEventListener('click', closeApplicationLayer);
+      closeDetailBtn.addEventListener('click', closeModal);
+      closeApplicationBtn.addEventListener('click', closeApplicationLayer);
       modalBackdrop.addEventListener('click',e=>{ if(e.target===modalBackdrop) closeModal(); });
       applicationBackdrop.addEventListener('click',e=>{ if(e.target===applicationBackdrop) closeApplicationLayer(); });
       document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeModal(); closeApplicationLayer(); } });
