@@ -56,10 +56,10 @@
       .chip { flex: 0 0 auto; border: 1px solid #4b524b; background: #1c201d; color: #d8ddd8; border-radius: 999px; padding: 8px 12px; cursor: pointer; }
       .chip.active { background: var(--lime); color: #13130f; border-color: var(--lime); font-weight: 700; }
       .section-note { color: #c0c6c1; font-size: 13px; margin: 4px 0 0; }
-      .plot-hints { display: grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap: 6px; margin-top: 6px; font-size: 12px; color: #b9c0ba; }
+      .plot-hints { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 4px 10px; margin-top: 6px; font-size: 11px; color: #a9b0aa; }
 
       .meeting-grid { margin-top: 18px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-      .meeting-card { background: var(--card); color: #231f17; border-radius: 18px; padding: 15px; display: flex; flex-direction: column; gap: 9px; min-height: 292px; }
+      .meeting-card { background: var(--card); color: #231f17; border-radius: 18px; padding: 15px; display: flex; flex-direction: column; gap: 9px; min-height: 282px; }
       .meeting-card h3 { margin: 0; font-size: 1.12rem; line-height: 1.28; }
       .meeting-card p { margin: 0; }
       .meta { color: #5f5747; font-size: 13px; }
@@ -79,9 +79,11 @@
       .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.58); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 70; }
       .modal { width: min(700px, 100%); max-height: 90vh; overflow: auto; background: #f8f3e7; color: #231f17; border-radius: 20px; padding: 20px; }
       .modal-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
-      .close { border: 1px solid #cbc2ac; border-radius: 999px; width: 34px; height: 34px; background: #fff8e8; font-size: 18px; cursor: pointer; }
+      .close { border: 1px solid #cbc2ac; border-radius: 999px; width: 34px; height: 34px; background: #fff8e8; font-size: 18px; cursor: pointer; font-weight: 700; }
+      .close:focus { outline: 2px solid #87b329; outline-offset: 2px; }
       .split { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; font-size: 14px; background: #efe7d3; border-radius: 12px; padding: 12px; }
       .apply-row { position: sticky; bottom: 0; background: linear-gradient(180deg, rgba(248,243,231,.6), #f8f3e7 35%); padding-top: 10px; margin-top: 12px; }
+      .apply-row .btn { width: 100%; justify-content: center; }
 
       @media (max-width: 980px) {
         .meeting-grid { grid-template-columns: repeat(2,1fr); }
@@ -140,7 +142,7 @@
     <div class="modal-backdrop" id="modalBackdrop"><div class="modal" role="dialog" aria-modal="true"><div class="modal-head"><div></div><button class="close" id="closeModal" aria-label="닫기">✕</button></div><div id="modalContent"></div></div></div>
 
     <script>
-      const plotDescriptions = { discovery:'몰랐던 것을 알게 되는 모임', escape:'답답함에서 벗어나는 모임', maturation:'나를 이해하고 성장하는 모임', quest:'함께 해내는 모임', mystery:'단서를 따라 이해하는 모임', adventure:'새로운 시도를 해보는 모임', metamorphosis:'다른 나를 만나보는 모임', underdog:'나만의 방식으로 해내는 모임' };
+      const plotDescriptions = { discovery:'새로운 취향을 발견', escape:'일상 답답함 환기', maturation:'나를 이해하고 성장', quest:'함께 목표를 완주', mystery:'단서를 따라 탐색', adventure:'처음의 시도 경험', metamorphosis:'다른 나를 실험', underdog:'나만의 방식으로 성취' };
       const meetings = [
         {id:'m1',title:'나도 몰랐던 내 취향 찾기',shortDescription:'질문과 선택으로 취향의 기준을 찾아봐요.',fullDescription:'질문 카드와 취향 지도 도구를 활용해 나의 취향을 발견하는 대화형 모임입니다.',hostName:'김하린',plot:'discovery',plotLabel:'발견',recommendedFor:['내 취향을 잘 모르겠는 분','가볍게 대화를 나누고 싶은 분','처음 참여가 어색한 분'],programFlow:['가벼운 질문으로 시작해요','선택지를 고르고 이유를 나눠요','취향 기준을 한 문장으로 정리해요'],date:'2026-05-21',startTime:'19:00',endTime:'20:30',location:'광명시 청년동 2층 라운지',capacity:8,currentApplicants:6,tags:['취향','대화','자기이해']},
         {id:'m2',title:'퇴근 후 나를 회복하는 작은 루틴',shortDescription:'지친 하루를 정리하는 저녁 회복 워크숍.',fullDescription:'짧은 스트레칭, 호흡, 기록으로 일상 루틴을 만들어보는 모임입니다.',hostName:'정은우',plot:'escape',plotLabel:'탈출',recommendedFor:['퇴근 후 무기력한 분','짧은 회복 습관을 만들고 싶은 분'],programFlow:['몸 풀기와 호흡','오늘의 감정 기록','나만의 10분 루틴 설계'],date:'2026-05-22',startTime:'20:00',endTime:'21:30',location:'광명시 청년동 3층 스튜디오',capacity:10,currentApplicants:8,tags:['회복','루틴','웰빙']},
